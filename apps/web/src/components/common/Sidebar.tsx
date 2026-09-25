@@ -27,6 +27,7 @@ import {
   Receipt,
   Package,
   LogOut,
+  Lightbulb,
 } from "lucide-react";
 import { clearVyapaarAuth } from "@/components/common/AuthGuard";
 
@@ -39,6 +40,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", labelHindi: "डैशबोर्ड", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Opportunities", labelHindi: "अवसर", icon: Lightbulb, href: "/opportunities" },
   { label: "Udhari Book", labelHindi: "उधारी बही", icon: BookOpen, href: "/udhari" },
   { label: "Cash Flow", labelHindi: "नकद प्रवाह", icon: TrendingUp, href: "/forecast" },
   { label: "Customers", labelHindi: "ग्राहक", icon: Users, href: "/customers" },

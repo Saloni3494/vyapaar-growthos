@@ -429,3 +429,25 @@ CREATE TABLE IF NOT EXISTS invoices (
     updated_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(merchant_id, invoice_number)
 );
+
+-- ===================================================================================
+-- OPPORTUNITIES TABLE
+-- ===================================================================================
+
+CREATE TABLE IF NOT EXISTS opportunities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    reason TEXT,
+    priority TEXT CHECK (priority IN ('high', 'medium', 'low')),
+    estimated_impact DECIMAL(12,2) DEFAULT 0,
+    confidence INTEGER DEFAULT 0,
+    action_type TEXT,
+    recommended_action TEXT,
+    status TEXT DEFAULT 'open' CHECK (status IN ('open', 'actioned', 'dismissed')),
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_opportunities_merchant ON opportunities(merchant_id, status);
