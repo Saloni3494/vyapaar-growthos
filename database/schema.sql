@@ -451,3 +451,25 @@ CREATE TABLE IF NOT EXISTS opportunities (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_opportunities_merchant ON opportunities(merchant_id, status);
+
+-- ===================================================================================
+-- GROWTH MISSIONS TABLE
+-- ===================================================================================
+
+CREATE TABLE IF NOT EXISTS growth_missions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
+    opportunity_id UUID REFERENCES opportunities(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    target_metric TEXT NOT NULL,
+    target_value DECIMAL(12,2) NOT NULL,
+    current_value DECIMAL(12,2) DEFAULT 0,
+    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'failed', 'abandoned')),
+    action_plan JSONB NOT NULL,
+    start_date TIMESTAMPTZ DEFAULT now(),
+    end_date TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_growth_missions_merchant ON growth_missions(merchant_id, status);

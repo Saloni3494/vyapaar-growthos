@@ -9,78 +9,121 @@ from config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-def get_deterministic_facts(merchant_id: str) -> Dict[str, Any]:
-    """Calculate deterministic business metrics for the merchant."""
-    facts = {}
-    today = date.today().isoformat()
-    thirty_days_ago = (date.today() - timedelta(days=30)).isoformat()
+def generate_deterministic_opportunities(merchant_id: str) -> List[Dict[str, Any]]:
+    """Generate opportunities deterministically based on business rules and economics."""
+    opps = []
+    today = date.today()
     
-    # 1. Udhari Data
-    udharis = db.get_merchant_udharis(merchant_id, status="pending")
-    overdue_udharis = [u for u in udharis if u.get("status") == "overdue"]
-    
-    facts["udhari"] = {
-        "total_pending_amount": sum((u.get("remaining") or 0) for u in udharis),
-        "overdue_count": len(overdue_udharis),
-        "overdue_amount": sum((u.get("remaining") or 0) for u in overdue_udharis),
-        "top_overdue_debtors": sorted(
-            [{"name": u.get("debtor_name"), "amount": u.get("remaining")} for u in overdue_udharis],
-            key=lambda x: (x["amount"] or 0), reverse=True
-        )[:3]
-    }
-    
-    # 2. Inventory Data
+    # 1. Udhar Recovery
+    try:
+        udharis = db.get_merchant_udharis(merchant_id, status="pending")
+        for u in udharis:
+            if u.get("status") == "overdue":
+                amount = u.get("remaining") or 0
+                due_date_str = u.get("due_date")
+                
+                days_overdue = 15
+                if due_date_str:
+                    try:
+                        days_overdue = (today - date.fromisoformat(due_date_str[:10])).days
+                    except:
+                        pass
+                        
+                risk_score = min(100, days_overdue * 2)
+                risk_level = "High" if risk_score > 60 else "Medium" if risk_score > 30 else "Low"
+                
+                opps.append({
+                    "type": "udhar_recovery",
+                    "priority": "high" if amount > 1000 else "medium",
+                    "estimated_impact": float(amount),
+                    "confidence": max(10, 100 - risk_score),
+                    "economic_breakdown": {
+                        "expected_revenue": float(amount),
+                        "expected_profit": float(amount),
+                        "cash_required": 0.0,
+                        "risk": risk_level,
+                        "evidence": f"Customer {u.get('debtor_name')} owes Rs {amount}, overdue by {days_overdue} days.",
+                        "assumptions": "Full amount is recoverable directly improving cash position."
+                    }
+                })
+    except Exception as e:
+        logger.warning(f"Error generating udhari opps: {e}")
+
+    # 2. Restock Low Inventory
     try:
         inventory = db.select("inventory", filters={"merchant_id": merchant_id})
-        low_stock = [i for i in inventory if (i.get("current_qty") or 0) <= (i.get("reorder_level") or 0)]
-        dead_stock = [i for i in inventory if (i.get("current_qty") or 0) > 0 and (i.get("updated_at") or "") < thirty_days_ago] # Simple heuristic for dead stock
-        
-        facts["inventory"] = {
-            "low_stock_items": [{"name": i.get("item_name"), "qty": i.get("current_qty")} for i in low_stock][:5],
-            "dead_stock_items": [{"name": i.get("item_name"), "qty": i.get("current_qty"), "value": float((i.get("current_qty") or 0) * (i.get("cost_price") or 0))} for i in dead_stock][:3]
-        }
+        for item in inventory:
+            curr = item.get("current_qty") or 0
+            reorder = item.get("reorder_level") or 0
+            if curr <= reorder:
+                cost_price = item.get("cost_price") or 0
+                selling_price = item.get("selling_price") or 0
+                qty_to_order = max(10, reorder * 2 - curr)
+                
+                cash_req = qty_to_order * cost_price
+                rev = qty_to_order * selling_price
+                profit = rev - cash_req
+                
+                if profit > 0:
+                    opps.append({
+                        "type": "restock",
+                        "priority": "high" if curr == 0 else "medium",
+                        "estimated_impact": float(profit),
+                        "confidence": 85,
+                        "economic_breakdown": {
+                            "expected_revenue": float(rev),
+                            "expected_profit": float(profit),
+                            "cash_required": float(cash_req),
+                            "risk": "Low",
+                            "evidence": f"Stock for {item.get('item_name')} is critically low ({curr} left).",
+                            "assumptions": f"Restocking {qty_to_order} units will meet expected demand based on historical run-rate."
+                        }
+                    })
     except Exception as e:
-        logger.warning(f"Failed to fetch inventory facts: {e}")
-        facts["inventory"] = {"low_stock_items": [], "dead_stock_items": []}
+        logger.warning(f"Error generating inventory opps: {e}")
 
-    # 3. Customer Churn Data
+    # 3. Customer Winback
     try:
         customers = db.select("customers", filters={"merchant_id": merchant_id})
-        churn_risk_customers = [c for c in customers if c.get("churn_risk") in ["high", "medium"]]
-        dormant_customers = [c for c in customers if (c.get("days_since_last_visit") or 0) > 30 and (c.get("total_visits") or 0) > 1]
-        
-        facts["customers"] = {
-            "churn_risk_count": len(churn_risk_customers),
-            "dormant_high_value": sorted(
-                [{"name": c.get("name"), "spent": c.get("total_spent", 0)} for c in dormant_customers],
-                key=lambda x: (x["spent"] or 0), reverse=True
-            )[:3]
-        }
+        for c in customers:
+            days_since = c.get("days_since_last_visit") or 0
+            visits = c.get("total_visits") or 0
+            if days_since > 30 and visits > 1:
+                total_spent = c.get("total_spent") or 0
+                avg_order = c.get("average_order_value") or (total_spent / max(1, visits))
+                
+                opps.append({
+                    "type": "customer_winback",
+                    "priority": "medium",
+                    "estimated_impact": float(avg_order),
+                    "confidence": 70,
+                    "economic_breakdown": {
+                        "expected_revenue": float(avg_order),
+                        "expected_profit": float(avg_order * 0.2), # Assume 20% margin
+                        "cash_required": 0.0,
+                        "risk": "Medium",
+                        "evidence": f"Loyal customer {c.get('name')} hasn't visited in {days_since} days.",
+                        "assumptions": f"A targeted WhatsApp offer has a 30% chance to bring them back for an expected purchase of Rs {avg_order:.2f}."
+                    }
+                })
     except Exception as e:
-        logger.warning(f"Failed to fetch customer facts: {e}")
-        facts["customers"] = {"churn_risk_count": 0, "dormant_high_value": []}
-        
-    return facts
+        logger.warning(f"Error generating customer opps: {e}")
+
+    # Sort and pick top 5
+    opps.sort(key=lambda x: x["estimated_impact"], reverse=True)
+    return opps[:5]
 
 
 async def discover_opportunities(merchant_id: str) -> List[Dict[str, Any]]:
     """
-    Run the Opportunity Discovery Engine.
-    1. Fetch deterministic facts.
-    2. Use Groq to analyze facts and suggest opportunities.
+    Run the Economic Opportunity Discovery Engine.
+    1. Generate opportunities deterministically with economic breakdowns.
+    2. Use Groq to add contextual reasoning/explanation.
     3. Deduplicate and persist to DB.
     """
-    facts = get_deterministic_facts(merchant_id)
+    deterministic_opps = generate_deterministic_opportunities(merchant_id)
     
-    # Check if we have enough data to generate opportunities
-    has_data = any(
-        bool(facts.get(k, {}).get("top_overdue_debtors")) or 
-        bool(facts.get(k, {}).get("low_stock_items")) or 
-        bool(facts.get(k, {}).get("dormant_high_value"))
-        for k in facts
-    )
-    
-    if not has_data:
+    if not deterministic_opps:
         logger.info(f"Not enough data to generate opportunities for {merchant_id}")
         return []
 
@@ -89,31 +132,19 @@ async def discover_opportunities(merchant_id: str) -> List[Dict[str, Any]]:
         client = AsyncGroq(api_key=settings.groq_api_key)
         
         prompt = f"""
-You are an expert retail business analyst for Indian MSMEs (like textile/kirana shops).
-Based on the following factual data for a merchant, identify 1-3 highly actionable business opportunities.
+You are an expert retail business analyst for Indian MSMEs. 
+I have deterministically calculated the economics for these highly actionable opportunities:
 
-Factual Data:
-{json.dumps(facts, indent=2)}
+{json.dumps(deterministic_opps, indent=2)}
 
-Generate opportunities in the following JSON format ONLY:
-[
-  {{
-    "type": "udhar_recovery" | "restock" | "dead_stock_bundle" | "customer_winback" | "cross_sell",
-    "title": "Short catchy title in English/Hinglish",
-    "reason": "Why is this an opportunity? Mention specific numbers from the facts.",
-    "priority": "high" | "medium" | "low",
-    "estimated_impact": <number representing potential revenue/savings in Rs>,
-    "confidence": <integer 0-100>,
-    "action_type": "remind_udhari" | "order_stock" | "send_broadcast" | "create_bundle",
-    "recommended_action": "What should the merchant do?"
-  }}
-]
+For each opportunity in the list, add the following presentation fields:
+- "title": A short catchy title in English/Hinglish.
+- "reason": A persuasive explanation of WHY they should do this, referencing the evidence and the expected profit.
+- "action_type": Choose one of "remind_udhari" | "order_stock" | "send_broadcast" | "create_bundle"
+- "recommended_action": What exact action should the merchant take? (e.g., "Send WhatsApp Reminder")
 
-Important Rules:
-- Output ONLY valid JSON array. Do not include markdown formatting like ```json.
-- Do not hallucinate numbers; only use the numbers provided in the facts.
-- If there is overdue udhari, ALWAYS suggest udhar_recovery with high priority.
-- Keep the title and reason concise.
+Return ONLY a JSON array of objects. The objects must include ALL the original fields from the input (including the full 'economic_breakdown') PLUS your 4 new fields.
+Do not output anything outside of the JSON array.
 """
         response = await client.chat.completions.create(
             model=settings.groq_model,
@@ -122,7 +153,7 @@ Important Rules:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.2,
-            max_tokens=1000
+            max_tokens=2000
         )
         
         content = response.choices[0].message.content.strip()
@@ -136,10 +167,23 @@ Important Rules:
         # Validate and structure
         valid_opps = []
         for opp in opportunities:
-            if all(k in opp for k in ["type", "title", "reason", "priority", "estimated_impact"]):
-                opp["merchant_id"] = merchant_id
-                opp["status"] = "open"
-                valid_opps.append(opp)
+            if all(k in opp for k in ["type", "title", "reason", "priority", "estimated_impact", "economic_breakdown"]):
+                db_opp = {
+                    "merchant_id": merchant_id,
+                    "type": opp["type"],
+                    "title": opp["title"],
+                    "reason": opp["reason"],
+                    "priority": opp["priority"],
+                    "estimated_impact": opp["estimated_impact"],
+                    "confidence": opp.get("confidence", 80),
+                    "action_type": opp.get("action_type"),
+                    "recommended_action": opp.get("recommended_action"),
+                    "status": "open",
+                    "metadata": {
+                        "economic_breakdown": opp["economic_breakdown"]
+                    }
+                }
+                valid_opps.append(db_opp)
                 
         # Deduplicate and Persist
         saved_opps = _deduplicate_and_save(merchant_id, valid_opps)
@@ -168,7 +212,8 @@ def _deduplicate_and_save(merchant_id: str, new_opps: List[Dict[str, Any]]) -> L
                     "estimated_impact": opp["estimated_impact"],
                     "confidence": opp.get("confidence", 80),
                     "action_type": opp.get("action_type"),
-                    "recommended_action": opp.get("recommended_action")
+                    "recommended_action": opp.get("recommended_action"),
+                    "metadata": opp.get("metadata", {})
                 })
                 opp["id"] = opp_id
                 saved.append(opp)

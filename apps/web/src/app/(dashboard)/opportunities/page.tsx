@@ -15,9 +15,11 @@ import {
   RefreshCw,
   Bell,
   ArrowRight,
-  ShoppingCart
+  ShoppingCart,
+  Activity
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { GrowthSimulatorModal } from "@/components/dashboard/GrowthSimulatorModal";
 
 interface Opportunity {
   id: string;
@@ -31,6 +33,16 @@ interface Opportunity {
   recommended_action: string;
   status: "open" | "actioned" | "dismissed";
   created_at: string;
+  metadata?: {
+    economic_breakdown?: {
+      expected_revenue: number;
+      expected_profit: number;
+      cash_required: number;
+      risk: string;
+      evidence: string;
+      assumptions: string;
+    }
+  };
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -54,6 +66,8 @@ export default function OpportunitiesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [simulationOppId, setSimulationOppId] = useState<string | null>(null);
+  const [simulationOppTitle, setSimulationOppTitle] = useState<string>("");
 
   const fetchOpportunities = async (forceRefresh = false) => {
     try {
@@ -196,6 +210,36 @@ export default function OpportunitiesPage() {
                     <span className="font-semibold text-vyapaar-primary">Action:</span>
                     <span>{opp.recommended_action}</span>
                   </div>
+
+                  {opp.metadata?.economic_breakdown && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Expected Profit</p>
+                        <p className="text-sm font-bold text-emerald-600">+{formatINR(opp.metadata.economic_breakdown.expected_profit)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Cash Required</p>
+                        <p className="text-sm font-bold text-amber-600">{formatINR(opp.metadata.economic_breakdown.cash_required)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Risk Profile</p>
+                        <p className={`text-sm font-bold ${
+                          opp.metadata.economic_breakdown.risk === 'High' ? 'text-red-600' : 
+                          opp.metadata.economic_breakdown.risk === 'Medium' ? 'text-amber-600' : 'text-emerald-600'
+                        }`}>
+                            {opp.metadata.economic_breakdown.risk}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium">Expected Revenue</p>
+                        <p className="text-sm font-bold text-blue-600">{formatINR(opp.metadata.economic_breakdown.expected_revenue)}</p>
+                      </div>
+                      <div className="col-span-2 md:col-span-4 mt-1 pt-3 border-t border-gray-200/60 space-y-1.5">
+                        <p className="text-xs text-gray-600"><span className="font-semibold text-gray-700">Evidence:</span> {opp.metadata.economic_breakdown.evidence}</p>
+                        <p className="text-xs text-gray-600"><span className="font-semibold text-gray-700">Assumptions:</span> {opp.metadata.economic_breakdown.assumptions}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right: Impact & Actions */}
@@ -217,10 +261,21 @@ export default function OpportunitiesPage() {
                     </button>
                     <button
                       onClick={() => handleAction(opp, "actioned")}
-                      className="flex items-center gap-2 px-4 py-2 bg-vyapaar-primary text-white text-sm font-bold rounded-xl hover:bg-vyapaar-primary/90 transition-all shadow-md hover:shadow-lg active:scale-95"
+                      className="flex items-center gap-2 px-4 py-2 bg-vyapaar-primary text-white text-sm font-bold rounded-xl hover:bg-vyapaar-primary/90 transition-all shadow-md hover:shadow-lg active:scale-95 whitespace-nowrap"
                     >
                       Take Action
                       <ArrowRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSimulationOppId(opp.id);
+                        setSimulationOppTitle(opp.title);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all shadow-sm whitespace-nowrap"
+                      title="Run What-If Analysis"
+                    >
+                      <Activity className="w-4 h-4 text-vyapaar-primary" />
+                      Simulate
                     </button>
                   </div>
                 </div>
@@ -228,6 +283,14 @@ export default function OpportunitiesPage() {
             ))}
           </AnimatePresence>
         </div>
+      )}
+      
+      {simulationOppId && (
+        <GrowthSimulatorModal 
+          opportunityId={simulationOppId}
+          opportunityTitle={simulationOppTitle}
+          onClose={() => setSimulationOppId(null)}
+        />
       )}
     </div>
   );
