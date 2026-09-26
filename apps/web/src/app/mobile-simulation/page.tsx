@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { API_BASE_URL, DEMO_MERCHANT_ID } from "@/lib/constants";
 import {
   Bell,
   Search,
@@ -19,8 +20,6 @@ export default function MobileHome() {
   const [oppCount, setOppCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const DEMO_MERCHANT_ID = "11111111-1111-1111-1111-111111111111";
-  const API_BASE_URL = "http://localhost:8000";
 
   useEffect(() => {
     const fetchData = async () => {

@@ -4,8 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Target, CheckCircle2, Circle, Loader2, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const DEMO_MERCHANT_ID = "11111111-1111-1111-1111-111111111111";
-const API_BASE_URL = "http://localhost:8000";
+import { DEMO_MERCHANT_ID, API_BASE_URL } from "@/lib/constants";
 
 export default function MobileMissions() {
   const [missions, setMissions] = useState<any[]>([]);

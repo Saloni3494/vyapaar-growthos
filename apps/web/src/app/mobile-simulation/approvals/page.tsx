@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ShieldCheck, Sliders, CheckCircle2, XCircle, Loader2, Check } from "lucide-react";
 
-const DEMO_MERCHANT_ID = "11111111-1111-1111-1111-111111111111";
-const API_BASE_URL = "http://localhost:8000";
+import { DEMO_MERCHANT_ID, API_BASE_URL } from "@/lib/constants";
 
 export default function MobileApprovals() {
   const [policy, setPolicy] = useState<any>(null);
