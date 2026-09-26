@@ -73,11 +73,11 @@ export default function MemoryPage() {
             Growth Memory
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Personalized insights learned from past actual outcomes. 
-            Muneem AI uses these to refine future Opportunity recommendations.
+            Personalized insights learned from past actual outcomes.
+            Vyapaar AI uses these to refine future Opportunity recommendations.
           </p>
         </div>
-        
+
         <button
           onClick={handleExtract}
           disabled={extracting}
@@ -117,18 +117,17 @@ export default function MemoryPage() {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
                     {m.category.replace('_', ' ')}
                   </span>
-                  <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${
-                    m.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' :
-                    m.confidence === 'medium' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
+                  <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${m.confidence === 'high' ? 'bg-emerald-100 text-emerald-700' :
+                      m.confidence === 'medium' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
                     {m.confidence} Confidence
                   </span>
                 </div>
-                
+
                 <h3 className="text-lg font-bold text-gray-900 mb-2">
                   "{m.insight}"
                 </h3>
-                
+
                 <div className="flex gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                   <div>

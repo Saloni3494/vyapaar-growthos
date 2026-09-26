@@ -20,12 +20,8 @@ def get_policy(merchant_id: str) -> Dict[str, Any]:
     }
 
 def update_policy(merchant_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-    existing = db.select("merchant_policies", filters={"merchant_id": merchant_id})
-    if existing:
-        db.update("merchant_policies", existing[0]["merchant_id"], updates)
-    else:
-        updates["merchant_id"] = merchant_id
-        db.insert("merchant_policies", updates)
+    updates["merchant_id"] = merchant_id
+    db.upsert("merchant_policies", updates)
     return get_policy(merchant_id)
 
 def evaluate_action(merchant_id: str, action_type: str, title: str, description: str, payload: Dict[str, Any]) -> Dict[str, Any]:

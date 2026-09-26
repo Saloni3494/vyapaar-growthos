@@ -284,7 +284,7 @@ async def process_voice(
                     json={
                         "model": settings.groq_model,
                         "messages": [
-                            {"role": "system", "content": f"You are Muneem AI, a warm Hindi-speaking AI accountant. Respond in Hinglish, 2-3 sentences. Context: {ctx}"},
+                            {"role": "system", "content": f"You are Vyapaar AI, a warm Hindi-speaking AI accountant. Respond in Hinglish, 2-3 sentences. Context: {ctx}"},
                             {"role": "user", "content": transcript},
                         ],
                         "temperature": 0.7, "max_tokens": 200,
@@ -395,7 +395,7 @@ async def process_text_demo(req: VoiceTextRequest):
 @router.post("/chat")
 async def chat_with_muneem(req: VoiceTextRequest):
     """
-    Conversational chat with Muneem AI.
+    Conversational chat with Vyapaar AI.
     For actionable commands (add expense, create udhari), routes through NLU.
     For general questions, uses Groq LLM directly as a conversational assistant.
     """
@@ -499,7 +499,7 @@ async def chat_with_muneem(req: VoiceTextRequest):
     except Exception:
         context = "No data available yet"
 
-    chat_prompt = f"""You are Muneem AI, a friendly and helpful AI accountant/CFO for Indian small businesses.
+    chat_prompt = f"""You are Vyapaar AI, a friendly and helpful AI accountant/CFO for Indian small businesses.
 You speak in Hindi-English mix (Hinglish). You are warm, professional, and knowledgeable about:
 - Bookkeeping, P&L, cash flow
 - GST filing and tax optimization
@@ -590,7 +590,7 @@ async def process_text(req: VoiceTextRequest):
                     json={
                         "model": settings.groq_model,
                         "messages": [
-                            {"role": "system", "content": f"You are Muneem AI, a warm Hindi-speaking AI accountant for Indian small businesses. Respond in natural Hinglish, 2-3 sentences. Be helpful and specific. Context: {ctx}"},
+                            {"role": "system", "content": f"You are Vyapaar AI, a warm Hindi-speaking AI accountant for Indian small businesses. Respond in natural Hinglish, 2-3 sentences. Be helpful and specific. Context: {ctx}"},
                             {"role": "user", "content": req.text},
                         ],
                         "temperature": 0.7, "max_tokens": 200,
@@ -673,7 +673,7 @@ async def process_audio_multi(
             context = "No data yet"
 
         chat_prompt = (
-            "You are Muneem AI, a friendly Hindi-speaking AI accountant for Indian small businesses. "
+            "You are Vyapaar AI, a friendly Hindi-speaking AI accountant for Indian small businesses. "
             "Respond in natural Hinglish (Hindi-English mix). Be warm, concise (2-3 sentences max). "
             f"Merchant context: {context}. "
             f"User said: {transcript}"

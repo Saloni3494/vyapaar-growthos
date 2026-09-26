@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Headphones,
+  Bot,
   X,
   Send,
   Mic,
@@ -224,7 +224,7 @@ export function VoiceChatWidget() {
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Muneem AI</p>
+                <p className="text-sm font-semibold">Vyapaar AI</p>
                 <p className="text-[10px] text-white/70 flex items-center gap-1">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
                   Online
@@ -359,7 +359,7 @@ export function VoiceChatWidget() {
         {open ? (
           <X className="h-5 w-5 text-white" />
         ) : (
-          <Headphones className="h-5 w-5 text-white" />
+          <Sparkles className="h-5 w-5 text-white" />
         )}
       </motion.button>
     </div>
