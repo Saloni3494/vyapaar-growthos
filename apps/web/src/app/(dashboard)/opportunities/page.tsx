@@ -103,12 +103,14 @@ export default function OpportunitiesPage() {
 
       // Handle specific action routing based on type
       if (action === "actioned") {
-        if (opp.action_type === "remind_udhari") {
+        if (opp.action_type === "udhari_reminder") {
           router.push("/udhari");
-        } else if (opp.action_type === "order_stock") {
+        } else if (opp.action_type === "inventory_reorder") {
           router.push("/inventory");
-        } else if (opp.action_type === "send_broadcast") {
+        } else if (opp.action_type === "whatsapp_broadcast") {
           router.push("/whatsapp");
+        } else if (opp.action_type === "create_invoice") {
+          router.push("/invoices");
         }
       }
     } catch (err) {

@@ -50,23 +50,46 @@ export default function MissionsPage() {
   };
 
   const handleStepComplete = async (missionId: string, step: Step) => {
-    // Optimistic UI update
-    setMissions(prev => prev.map(m => {
-      if (m.id === missionId) {
-        const newPlan = m.action_plan.map(s => s.id === step.id ? { ...s, status: "completed" as const } : s);
-        const completedCount = newPlan.filter(s => s.status === "completed").length;
-        const progress = completedCount / newPlan.length;
-        return {
-          ...m,
-          action_plan: newPlan,
-          current_value: m.target_value * progress,
-          status: completedCount === newPlan.length ? "completed" : "active"
-        };
-      }
-      return m;
-    }));
-
     try {
+      // Check Policy Gateway
+      const evalRes = await fetch(`${API_BASE_URL}/api/policies/${DEMO_MERCHANT_ID}/evaluate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action_type: step.api_action,
+          title: step.title,
+          description: step.description,
+          payload: { 
+            amount: missionId === 'dummy' ? 6000 : 0,
+            mission_id: missionId,
+            step_id: step.id
+          }
+        })
+      });
+      
+      const evalData = await evalRes.json();
+      if (evalData.status === "pending_approval") {
+        alert("Policy Gateway Blocked: Action requires approval. Please check Policies page.");
+        router.push("/policies");
+        return;
+      }
+
+      // Optimistic UI update
+      setMissions(prev => prev.map(m => {
+        if (m.id === missionId) {
+          const newPlan = m.action_plan.map(s => s.id === step.id ? { ...s, status: "completed" as const } : s);
+          const completedCount = newPlan.filter(s => s.status === "completed").length;
+          const progress = completedCount / newPlan.length;
+          return {
+            ...m,
+            action_plan: newPlan,
+            current_value: m.target_value * progress,
+            status: completedCount === newPlan.length ? "completed" : "active"
+          };
+        }
+        return m;
+      }));
+
       await fetch(`${API_BASE_URL}/api/missions/${missionId}/steps/${step.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },

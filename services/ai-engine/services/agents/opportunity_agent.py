@@ -131,16 +131,25 @@ async def discover_opportunities(merchant_id: str) -> List[Dict[str, Any]]:
         from groq import AsyncGroq
         client = AsyncGroq(api_key=settings.groq_api_key)
         
+        from services.agents.memory_agent import generate_memory_context
+        memory_context = generate_memory_context(merchant_id)
+        
         prompt = f"""
 You are an expert retail business analyst for Indian MSMEs. 
 I have deterministically calculated the economics for these highly actionable opportunities:
 
 {json.dumps(deterministic_opps, indent=2)}
 
+IMPORTANT - HISTORICAL MERCHANT MEMORY (Growth Memory):
+This merchant has the following personalized historical insights based on actual impact measurements. Use these to adjust your reasoning and recommendations so they are highly personalized. Do not contradict these insights.
+---
+{memory_context}
+---
+
 For each opportunity in the list, add the following presentation fields:
 - "title": A short catchy title in English/Hinglish.
 - "reason": A persuasive explanation of WHY they should do this, referencing the evidence and the expected profit.
-- "action_type": Choose one of "remind_udhari" | "order_stock" | "send_broadcast" | "create_bundle"
+- "action_type": Choose one of "udhari_reminder" | "inventory_reorder" | "whatsapp_broadcast" | "create_invoice"
 - "recommended_action": What exact action should the merchant take? (e.g., "Send WhatsApp Reminder")
 
 Return ONLY a JSON array of objects. The objects must include ALL the original fields from the input (including the full 'economic_breakdown') PLUS your 4 new fields.

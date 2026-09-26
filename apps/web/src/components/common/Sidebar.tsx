@@ -29,6 +29,9 @@ import {
   LogOut,
   Lightbulb,
   Target,
+  ShieldCheck,
+  LineChart,
+  BrainCircuit
 } from "lucide-react";
 import { clearVyapaarAuth } from "@/components/common/AuthGuard";
 
@@ -42,6 +45,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", labelHindi: "डैशबोर्ड", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Missions", labelHindi: "मिशन", icon: Target, href: "/missions" },
+  { label: "Impact & ROI", labelHindi: "प्रभाव", icon: LineChart, href: "/impact" },
+  { label: "Growth Memory", labelHindi: "स्मृति", icon: BrainCircuit, href: "/memory" },
   { label: "Opportunities", labelHindi: "अवसर", icon: Lightbulb, href: "/opportunities" },
   { label: "Udhari Book", labelHindi: "उधारी बही", icon: BookOpen, href: "/udhari" },
   { label: "Cash Flow", labelHindi: "नकद प्रवाह", icon: TrendingUp, href: "/forecast" },
@@ -51,7 +56,7 @@ const navItems: NavItem[] = [
   { label: "Inventory", labelHindi: "इन्वेंटरी", icon: Package, href: "/inventory" },
   { label: "Vendor Ledger", labelHindi: "विक्रेता खाता", icon: Truck, href: "/vendors" },
   { label: "WhatsApp", labelHindi: "वॉट्सऐप", icon: MessageCircle, href: "/whatsapp" },
-  { label: "Soundbox", labelHindi: "साउंडबॉक्स", icon: Volume2, href: "/soundbox" },
+  { label: "Policies & Approvals", labelHindi: "नीतियां", icon: ShieldCheck, href: "/policies" },
   { label: "Chat with Muneem", labelHindi: "मुनीम से बात", icon: MessageSquare, href: "/chat" },
 ];
 

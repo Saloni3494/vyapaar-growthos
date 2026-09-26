@@ -473,3 +473,72 @@ CREATE TABLE IF NOT EXISTS growth_missions (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_growth_missions_merchant ON growth_missions(merchant_id, status);
+
+-- ===================================================================================
+-- MERCHANT POLICIES
+-- ===================================================================================
+
+CREATE TABLE IF NOT EXISTS merchant_policies (
+    merchant_id UUID PRIMARY KEY REFERENCES merchants(id) ON DELETE CASCADE,
+    autonomy_level TEXT DEFAULT 'approve' CHECK (autonomy_level IN ('suggest', 'approve', 'auto')),
+    max_auto_spend DECIMAL(12,2) DEFAULT 1000,
+    require_approval_high_risk BOOLEAN DEFAULT TRUE,
+    allow_whatsapp_auto BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ===================================================================================
+-- APPROVAL REQUESTS (Human-in-the-loop)
+-- ===================================================================================
+
+CREATE TABLE IF NOT EXISTS approval_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
+    action_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    payload JSONB NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMPTZ DEFAULT now(),
+    resolved_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_approval_requests_merchant ON approval_requests(merchant_id, status);
+
+-- ===================================================================================
+-- IMPACT MEASUREMENTS
+-- ===================================================================================
+
+CREATE TABLE IF NOT EXISTS impact_measurements (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
+    action_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    metric_name TEXT NOT NULL,
+    baseline_rate DECIMAL(12,2) DEFAULT 0,
+    actual_value DECIMAL(12,2) DEFAULT 0,
+    incremental_value DECIMAL(12,2) DEFAULT 0,
+    attribution_method TEXT,
+    confidence TEXT DEFAULT 'low',
+    status TEXT DEFAULT 'tracking' CHECK (status IN ('tracking', 'completed', 'insufficient_data')),
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_impact_measurements_merchant ON impact_measurements(merchant_id, status);
+
+-- ===================================================================================
+-- GROWTH MEMORY (Learned Insights)
+-- ===================================================================================
+
+CREATE TABLE IF NOT EXISTS growth_memory (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
+    category TEXT NOT NULL,
+    insight TEXT NOT NULL,
+    evidence TEXT,
+    confidence TEXT DEFAULT 'medium' CHECK (confidence IN ('low', 'medium', 'high')),
+    impact_measurement_id UUID REFERENCES impact_measurements(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_growth_memory_merchant ON growth_memory(merchant_id);
